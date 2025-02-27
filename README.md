@@ -21,7 +21,7 @@ Made by Aiconomist from [https://www.youtube.com/@aiconomist](https://www.youtub
    ```
 2. Clone this repository:
    ```
-   git clone https://github.com/Pixelailabs/Save_Florence2_Bulk_Text.git
+   git clone https://github.com/Pixelailabs/Save_Florence2_Bulk_Prompts.git
    ```
 3. Restart ComfyUI
 
