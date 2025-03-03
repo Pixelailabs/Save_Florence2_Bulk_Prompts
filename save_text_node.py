@@ -1,9 +1,8 @@
 import os
 import re
 import folder_paths
-from server import PromptServer
 
-class SaveText:
+class SaveTextFlorence:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -16,36 +15,90 @@ class SaveText:
                 "image_style": ("STRING", {"default": ""}),
                 "gender_age_replacement": ("STRING", {"default": ""}),
                 "lora_trigger": ("STRING", {"default": ""}),
-                "negative_prompt_text": ("STRING", {"default": ""})
+                "negative_prompt_text": ("STRING", {"multiline": True, "default": ""})
             }
         }
 
+    # Enable list input/output
+    INPUT_IS_LIST = True
+    OUTPUT_IS_LIST = (True,)
+    
     RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("processed_text",)
     FUNCTION = "write_text"
     OUTPUT_NODE = True
     CATEGORY = "utils"
 
     def write_text(self, text, file, enable_replacement, image_style, gender_age_replacement, lora_trigger, negative_prompt_text):
-        full_path = folder_paths.get_output_directory()
-        file = os.path.join(full_path, file)
-
-        # Process the text only if enable_replacement is True
-        if enable_replacement:
-            processed_text = self.process_text(text, image_style, gender_age_replacement, lora_trigger)
-        else:
-            processed_text = text
-
-        try:
-            with open(file, "a") as f:
-                f.write(f"positive: {processed_text}\n")
-                f.write(f"negative: {negative_prompt_text}\n")
-                f.write("---------\n")
+        # Handle case where inputs are not lists
+        if not isinstance(text, list):
+            text = [text]
+        if not isinstance(file, list):
+            file = [file] * len(text)
+        if not isinstance(enable_replacement, list):
+            enable_replacement = [enable_replacement] * len(text)
+        if not isinstance(image_style, list):
+            image_style = [image_style] * len(text)
+        if not isinstance(gender_age_replacement, list):
+            gender_age_replacement = [gender_age_replacement] * len(text)
+        if not isinstance(lora_trigger, list):
+            lora_trigger = [lora_trigger] * len(text)
+        if not isinstance(negative_prompt_text, list):
+            negative_prompt_text = [negative_prompt_text] * len(text)
             
-            return (processed_text,)
-        except Exception as e:
-            print(f"Error writing to file: {e}")
-            return (text,)
+        # Make sure all lists have the same length
+        max_length = max(len(text), len(file), len(enable_replacement), 
+                         len(image_style), len(gender_age_replacement), 
+                         len(lora_trigger), len(negative_prompt_text))
+        
+        text = self._extend_list(text, max_length)
+        file = self._extend_list(file, max_length)
+        enable_replacement = self._extend_list(enable_replacement, max_length)
+        image_style = self._extend_list(image_style, max_length)
+        gender_age_replacement = self._extend_list(gender_age_replacement, max_length)
+        lora_trigger = self._extend_list(lora_trigger, max_length)
+        negative_prompt_text = self._extend_list(negative_prompt_text, max_length)
+        
+        processed_texts = []
+        full_path = folder_paths.get_output_directory()
+        
+        for i in range(max_length):
+            current_text = text[i]
+            
+            # Process the text only if enable_replacement is True
+            if enable_replacement[i]:
+                processed_text = self.process_text(
+                    current_text, 
+                    image_style[i], 
+                    gender_age_replacement[i], 
+                    lora_trigger[i]
+                )
+            else:
+                processed_text = current_text
+                
+            processed_texts.append(processed_text)
+            
+            # Write to file
+            file_path = os.path.join(full_path, file[i])
+            try:
+                with open(file_path, "a", encoding="utf-8") as f:
+                    f.write(f"positive: {processed_text}\n")
+                    f.write(f"negative: {negative_prompt_text[i]}\n")
+                    f.write("---------\n")
+                
+                print(f"Successfully wrote text #{i+1} to {file_path}")
+            except Exception as e:
+                print(f"Error writing to file {file_path}: {e}")
+        
+        return (processed_texts,)
 
+    def _extend_list(self, lst, target_length):
+        """Helper method to extend a list to the target length by repeating the last element"""
+        if len(lst) < target_length:
+            last_element = lst[-1] if lst else ""
+            lst.extend([last_element] * (target_length - len(lst)))
+        return lst
+    
     def process_text(self, text, image_style, gender_age_replacement, lora_trigger):
         # Replace "The image is" or "The image shows"
         if image_style:
@@ -71,9 +124,9 @@ class SaveText:
         return float("nan")
 
 NODE_CLASS_MAPPINGS = {
-    "SaveText": SaveText
+    "SaveTextFlorence": SaveTextFlorence
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SaveText": "Save Text From Florence2 (AICONOMIST)"
+    "SaveTextFlorence": "Save Florence Bulk Prompts by Aiconomist"
 }
