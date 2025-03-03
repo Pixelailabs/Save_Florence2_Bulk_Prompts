@@ -1,6 +1,8 @@
 import os
 import re
 import folder_paths
+import json
+import hashlib
 
 class SaveTextFlorence:
     @classmethod
@@ -29,6 +31,9 @@ class SaveTextFlorence:
     OUTPUT_NODE = True
     CATEGORY = "utils"
 
+    # Class variable to store the last inputs and outputs
+    _cache = {}
+    
     def write_text(self, text, file, enable_replacement, image_style, gender_age_replacement, lora_trigger, negative_prompt_text):
         # Handle case where inputs are not lists
         if not isinstance(text, list):
@@ -58,6 +63,25 @@ class SaveTextFlorence:
         gender_age_replacement = self._extend_list(gender_age_replacement, max_length)
         lora_trigger = self._extend_list(lora_trigger, max_length)
         negative_prompt_text = self._extend_list(negative_prompt_text, max_length)
+        
+        # Generate a cache key for this specific run
+        input_data = {
+            "text": text,
+            "file": file,
+            "enable_replacement": enable_replacement,
+            "image_style": image_style,
+            "gender_age_replacement": gender_age_replacement,
+            "lora_trigger": lora_trigger,
+            "negative_prompt_text": negative_prompt_text
+        }
+        
+        # Create a hash of the inputs to use as cache key
+        cache_key = self._get_cache_key(input_data)
+        
+        # Check if we've already processed these exact inputs
+        if cache_key in SaveTextFlorence._cache:
+            print("Using cached result for SaveTextFlorence node")
+            return SaveTextFlorence._cache[cache_key]
         
         processed_texts = []
         full_path = folder_paths.get_output_directory()
@@ -90,7 +114,16 @@ class SaveTextFlorence:
             except Exception as e:
                 print(f"Error writing to file {file_path}: {e}")
         
-        return (processed_texts,)
+        # Store the result in cache
+        result = (processed_texts,)
+        SaveTextFlorence._cache[cache_key] = result
+        return result
+
+    def _get_cache_key(self, input_data):
+        """Generate a unique hash for the input data to use as a cache key"""
+        # Convert input data to a JSON string and hash it
+        input_json = json.dumps(input_data, sort_keys=True)
+        return hashlib.md5(input_json.encode()).hexdigest()
 
     def _extend_list(self, lst, target_length):
         """Helper method to extend a list to the target length by repeating the last element"""
@@ -120,8 +153,12 @@ class SaveTextFlorence:
         return text
 
     @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("nan")
+    def IS_CHANGED(cls, text, file, enable_replacement, image_style, gender_age_replacement, lora_trigger, negative_prompt_text):
+        """
+        Tells ComfyUI whether this node should be re-executed.
+        Returns None to indicate the node should be considered cached.
+        """
+        return None
 
 NODE_CLASS_MAPPINGS = {
     "SaveTextFlorence": SaveTextFlorence
