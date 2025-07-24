@@ -4,7 +4,7 @@ import folder_paths
 import json
 import hashlib
 
-class SaveTextFlorence:
+class SaveTextFlorence2:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -79,9 +79,9 @@ class SaveTextFlorence:
         cache_key = self._get_cache_key(input_data)
         
         # Check if we've already processed these exact inputs
-        if cache_key in SaveTextFlorence._cache:
-            print("Using cached result for SaveTextFlorence node")
-            return SaveTextFlorence._cache[cache_key]
+        if cache_key in SaveTextFlorence2._cache:
+            print("Using cached result for SaveTextFlorence2 node")
+            return SaveTextFlorence2._cache[cache_key]
         
         processed_texts = []
         full_path = folder_paths.get_output_directory()
@@ -116,7 +116,7 @@ class SaveTextFlorence:
         
         # Store the result in cache
         result = (processed_texts,)
-        SaveTextFlorence._cache[cache_key] = result
+        SaveTextFlorence2._cache[cache_key] = result
         return result
 
     def _get_cache_key(self, input_data):
@@ -161,9 +161,9 @@ class SaveTextFlorence:
         return None
 
 NODE_CLASS_MAPPINGS = {
-    "SaveTextFlorence": SaveTextFlorence
+    "SaveTextFlorence2": SaveTextFlorence2
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SaveTextFlorence": "Save Florence Bulk Prompts by Aiconomist"
+    "SaveTextFlorence2": "Save Florence Bulk Prompts by Aiconomist v2"
 }
